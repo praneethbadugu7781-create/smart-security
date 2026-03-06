@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Login</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #1a1a2e; color: white; }
+        input { width: 100%; padding: 15px; margin: 10px 0; font-size: 16px; border-radius: 5px; border: none; }
+        button { width: 100%; padding: 15px; font-size: 18px; background: #4361ee; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        h1 { text-align: center; }
+        .container { max-width: 400px; margin: 50px auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Security Login</h1>
+        <form action="/login" method="POST">
+            <input type="text" name="username" placeholder="Username" value="security1" required>
+            <input type="password" name="password" placeholder="Password" value="password123" required>
+            <button type="submit">LOGIN</button>
+        </form>
+        <p style="text-align:center; margin-top:20px;">Username: security1 | Password: password123</p>
+    </div>
+</body>
+</html>

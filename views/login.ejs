@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - College Security System</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/login.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Logo/Header -->
+            <div class="login-header">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                </div>
+                <h1>College Security System</h1>
+                <p>Smart Main Gate Entry-Exit Management</p>
+            </div>
+            
+            <!-- Login Form - action="/login" for fallback form submission -->
+            <form id="loginForm" class="login-form" action="/login" method="post">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        required 
+                        autocomplete="username"
+                        autofocus
+                        placeholder="Enter your username"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        required 
+                        autocomplete="current-password"
+                        placeholder="Enter your password"
+                    >
+                </div>
+                
+                <!-- Error message container -->
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                
+                <!-- Login button - note: this is NOT for scanning, only for login -->
+                <button type="submit" class="login-button" id="loginButton">
+                    <span class="button-text">Sign In</span>
+                    <span class="button-loader" style="display: none;">
+                        <svg class="spinner" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="32" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                </button>
+            </form>
+            
+            <!-- Footer -->
+            <div class="login-footer">
+                <p>Campus Discipline & Security System</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        /**
+         * Login Form Handler
+         * Simple form submission with error handling
+         */
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const form = e.target;
+            const button = document.getElementById('loginButton');
+            const errorDiv = document.getElementById('errorMessage');
+            
+            // Get form values
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            // Validation
+            if (!username || !password) {
+                showError('Please enter both username and password');
+                return;
+            }
+            
+            // Show loading state
+            button.disabled = true;
+            button.querySelector('.button-text').style.display = 'none';
+            button.querySelector('.button-loader').style.display = 'flex';
+            errorDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Redirect to appropriate dashboard
+                    window.location.href = data.redirect || '/dashboard';
+                } else {
+                    showError(data.error || 'Login failed');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                // Fallback: submit form traditionally
+                form.submit();
+                return;
+            } finally {
+                // Reset button state
+                button.disabled = false;
+                button.querySelector('.button-text').style.display = 'block';
+                button.querySelector('.button-loader').style.display = 'none';
+            }
+        });
+        
+        // Show error from URL query string (for form fallback)
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorParam = urlParams.get('error');
+        if (errorParam) {
+            showError(decodeURIComponent(errorParam));
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            // Shake animation
+            errorDiv.classList.add('shake');
+            setTimeout(() => errorDiv.classList.remove('shake'), 500);
+        }
+    </script>
+</body>
+</html>

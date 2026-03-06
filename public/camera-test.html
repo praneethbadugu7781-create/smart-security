@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Test</title>
+    <style>
+        body { 
+            font-family: Arial; 
+            padding: 20px; 
+            background: #1a1a2e; 
+            color: white; 
+            text-align: center;
+        }
+        video { 
+            width: 100%; 
+            max-width: 400px; 
+            background: #333; 
+            border-radius: 10px;
+        }
+        button { 
+            padding: 20px 40px; 
+            font-size: 18px; 
+            background: #4361ee; 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            margin: 20px;
+            cursor: pointer;
+        }
+        #status { 
+            padding: 20px; 
+            margin: 20px; 
+            background: #333; 
+            border-radius: 10px; 
+        }
+        .success { background: #22c55e !important; }
+        .error { background: #ef4444 !important; }
+    </style>
+</head>
+<body>
+    <h1>Camera Test</h1>
+    
+    <div id="status">Click button to start camera</div>
+    
+    <button id="startBtn" onclick="startCamera()">START CAMERA</button>
+    
+    <br><br>
+    
+    <video id="video" autoplay playsinline muted></video>
+    
+    <br>
+    <p id="debug"></p>
+
+    <script>
+        const video = document.getElementById('video');
+        const status = document.getElementById('status');
+        const debug = document.getElementById('debug');
+        
+        async function startCamera() {
+            status.className = '';
+            status.textContent = 'Requesting camera...';
+            debug.textContent = '';
+            
+            try {
+                // Check if getUserMedia is available
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Camera API not available. HTTPS required on mobile.');
+                }
+                
+                debug.textContent = 'Requesting permission...';
+                
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                
+                debug.textContent = 'Got stream, setting video source...';
+                
+                video.srcObject = stream;
+                video.play();
+                
+                status.textContent = 'CAMERA WORKING!';
+                status.className = 'success';
+                debug.textContent = 'Stream active: ' + stream.active;
+                
+            } catch (err) {
+                console.error('Camera error:', err);
+                status.textContent = 'CAMERA FAILED: ' + err.message;
+                status.className = 'error';
+                debug.textContent = 'Error: ' + err.name + ' - ' + err.message;
+            }
+        }
+        
+        // Check protocol
+        document.getElementById('debug').textContent = 
+            'Protocol: ' + location.protocol + 
+            ' | Secure: ' + (location.protocol === 'https:') +
+            ' | Host: ' + location.host;
+    </script>
+</body>
+</html>

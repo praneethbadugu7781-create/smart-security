@@ -1,0 +1,59 @@
+{
+  "name": "college-smart-security",
+  "version": "1.0.0",
+  "description": "Smart Main Gate Entry-Exit & Campus Discipline System - Complete web-based college security solution with real-time barcode scanning",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "setup-db": "node scripts/setup-database.js",
+    "seed": "node scripts/seed-data.js",
+    "import": "node scripts/import-students.js",
+    "test": "jest --coverage",
+    "lint": "eslint ."
+  },
+  "keywords": [
+    "college",
+    "security",
+    "gate",
+    "entry-exit",
+    "barcode",
+    "scanner",
+    "campus",
+    "discipline",
+    "attendance"
+  ],
+  "author": "College IT Department",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "compression": "^1.7.4",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-session": "^1.17.3",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.6.5",
+    "uuid": "^9.0.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  }
+}

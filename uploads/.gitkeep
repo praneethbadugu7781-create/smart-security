@@ -1,0 +1,5 @@
+# Uploads Directory
+This directory stores uploaded files including permission letters.
+
+## Subdirectories
+- `permission_letters/` - Scanned permission letter images

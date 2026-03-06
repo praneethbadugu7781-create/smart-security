@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body class="dashboard-page warden-dashboard">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar warden-sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
+            <span class="logo-text">Security System</span>
+        </div>
+        
+        <div class="hostel-badge">
+            <span><%= hostelName %></span>
+        </div>
+        
+        <div class="nav-section">
+            <a href="/dashboard/warden" class="nav-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="9"/>
+                    <rect x="14" y="3" width="7" height="5"/>
+                    <rect x="14" y="12" width="7" height="9"/>
+                    <rect x="3" y="16" width="7" height="5"/>
+                </svg>
+                <span>Dashboard</span>
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('curfew')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>Curfew Monitor</span>
+                <% if (curfewViolations && curfewViolations.length > 0) { %>
+                    <span class="nav-badge danger"><%= curfewViolations.length %></span>
+                <% } %>
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('outside')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                <span>Outside Campus</span>
+                <% if (outsideCampus && outsideCampus.length > 0) { %>
+                    <span class="nav-badge warning"><%= outsideCampus.length %></span>
+                <% } %>
+            </a>
+            <a href="#" class="nav-item" onclick="showSection('activity')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                <span>Activity Log</span>
+            </a>
+        </div>
+        
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <div class="user-avatar"><%= user.full_name.charAt(0) %></div>
+                <div class="user-details">
+                    <span class="user-name"><%= user.full_name %></span>
+                    <span class="user-role">Warden</span>
+                </div>
+            </div>
+            <a href="/logout" class="logout-link">Logout</a>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <header class="content-header">
+            <div class="header-title">
+                <h1>Warden Dashboard</h1>
+                <p class="header-subtitle"><%= hostelName %></p>
+            </div>
+            <div class="header-actions">
+                <div class="curfew-timer">
+                    <span class="curfew-label">Curfew at</span>
+                    <span class="curfew-time"><%= curfewTime %></span>
+                </div>
+                <div class="alert-bell" id="alertBell" onclick="showAlerts()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span class="alert-count" id="alertCount"><%= unreadAlertCount %></span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Stats Cards -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon total">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value"><%= stats.total_hostelers || 0 %></span>
+                    <span class="stat-label">Total Hostelers</span>
+                </div>
+            </div>
+            
+            <div class="stat-card success">
+                <div class="stat-icon inside">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value"><%= stats.inside_campus || 0 %></span>
+                    <span class="stat-label">Inside Campus</span>
+                </div>
+            </div>
+            
+            <div class="stat-card warning">
+                <div class="stat-icon outside">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value"><%= outsideCampus ? outsideCampus.length : 0 %></span>
+                    <span class="stat-label">Outside Campus</span>
+                </div>
+            </div>
+            
+            <div class="stat-card danger">
+                <div class="stat-icon violations">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </div>
+                <div class="stat-content">
+                    <span class="stat-value"><%= curfewViolations ? curfewViolations.length : 0 %></span>
+                    <span class="stat-label">Curfew Violations</span>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Main Grid -->
+        <div class="dashboard-grid warden-grid">
+            <!-- Curfew Violations (Priority) -->
+            <section class="card curfew-card priority-card">
+                <div class="card-header">
+                    <h2>Curfew Violations</h2>
+                    <span class="badge danger"><%= curfewViolations ? curfewViolations.length : 0 %> Active</span>
+                </div>
+                <div class="card-content">
+                    <div class="violations-list" id="violationsList">
+                        <% if (curfewViolations && curfewViolations.length > 0) { %>
+                            <% curfewViolations.forEach(violation => { %>
+                                <div class="violation-item" data-id="<%= violation.id %>">
+                                    <div class="violation-student">
+                                        <strong><%= violation.full_name %></strong>
+                                        <span><%= violation.roll_number %></span>
+                                    </div>
+                                    <div class="violation-details">
+                                        <span class="violation-time">Returned at <%= new Date(violation.event_timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) %></span>
+                                        <span class="violation-duration"><%= violation.minutes_late %> min late</span>
+                                    </div>
+                                    <div class="violation-room">
+                                        <span>Room: <%= violation.room_number || 'N/A' %></span>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="empty-state success">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                    <polyline points="22 4 12 14.01 9 11.01"/>
+                                </svg>
+                                <p>No curfew violations</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Currently Outside Campus -->
+            <section class="card outside-card">
+                <div class="card-header">
+                    <h2>Outside Campus</h2>
+                    <span class="badge warning"><%= outsideCampus ? outsideCampus.length : 0 %></span>
+                </div>
+                <div class="card-content">
+                    <div class="outside-list" id="outsideList">
+                        <% if (outsideCampus && outsideCampus.length > 0) { %>
+                            <% outsideCampus.forEach(student => { %>
+                                <div class="outside-item <%= student.is_late ? 'late' : '' %>" data-id="<%= student.student_id %>">
+                                    <div class="outside-student">
+                                        <strong><%= student.full_name %></strong>
+                                        <span><%= student.roll_number %></span>
+                                    </div>
+                                    <div class="outside-meta">
+                                        <span class="exit-time">Exited: <%= new Date(student.event_timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) %></span>
+                                        <% if (student.has_permission) { %>
+                                            <span class="permission-badge">Has Permission</span>
+                                        <% } %>
+                                    </div>
+                                    <div class="outside-room">
+                                        <span>Room: <%= student.room_number || 'N/A' %></span>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="empty-state success">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                    <polyline points="9 22 9 12 15 12 15 22"/>
+                                </svg>
+                                <p>All hostelers inside campus</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Live Activity -->
+            <section class="card activity-card">
+                <div class="card-header">
+                    <h2>Hostel Activity</h2>
+                    <span class="refresh-indicator">
+                        <span class="pulse"></span>
+                        Live
+                    </span>
+                </div>
+                <div class="card-content">
+                    <div class="activity-list" id="activityList">
+                        <% if (recentLogs && recentLogs.length > 0) { %>
+                            <% recentLogs.slice(0, 20).forEach(log => { %>
+                                <div class="activity-item <%= log.event_type %> <%= log.is_late_return ? 'late' : '' %>">
+                                    <div class="activity-icon">
+                                        <% if (log.event_type === 'entry') { %>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="10 17 15 12 10 7"/>
+                                            </svg>
+                                        <% } else { %>
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="14 7 9 12 14 17"/>
+                                            </svg>
+                                        <% } %>
+                                    </div>
+                                    <div class="activity-details">
+                                        <span class="activity-name"><%= log.full_name %></span>
+                                        <span class="activity-room">Room <%= log.room_number || 'N/A' %></span>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="activity-type"><%= log.event_type.toUpperCase() %></span>
+                                        <span class="activity-time"><%= new Date(log.event_timestamp).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) %></span>
+                                    </div>
+                                </div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="empty-state">
+                                <p>No activity yet today</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </section>
+        </div>
+        
+        <!-- Countdown to Curfew (visible during evening) -->
+        <div class="curfew-countdown" id="curfewCountdown" style="display: none;">
+            <div class="countdown-content">
+                <span class="countdown-label">Curfew in</span>
+                <span class="countdown-time" id="countdownTimer">00:00:00</span>
+            </div>
+        </div>
+    </main>
+    
+    <script src="/js/dashboard.js"></script>
+    <script>
+        // Curfew countdown functionality
+        function updateCurfewCountdown() {
+            const now = new Date();
+            const curfewTime = '<%= curfewTime %>';
+            const [hours, minutes] = curfewTime.split(':').map(Number);
+            
+            const curfew = new Date();
+            curfew.setHours(hours, minutes, 0, 0);
+            
+            const diff = curfew - now;
+            
+            if (diff > 0 && diff < 3 * 60 * 60 * 1000) { // Show 3 hours before curfew
+                const countdownEl = document.getElementById('curfewCountdown');
+                const timerEl = document.getElementById('countdownTimer');
+                
+                countdownEl.style.display = 'flex';
+                
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                timerEl.textContent = 
+                    String(h).padStart(2, '0') + ':' + 
+                    String(m).padStart(2, '0') + ':' + 
+                    String(s).padStart(2, '0');
+                
+                if (diff < 30 * 60 * 1000) { // Last 30 minutes
+                    countdownEl.classList.add('urgent');
+                }
+            }
+        }
+        
+        setInterval(updateCurfewCountdown, 1000);
+        updateCurfewCountdown();
+        
+        // Start auto-refresh
+        startDashboardRefresh();
+    </script>
+</body>
+</html>
