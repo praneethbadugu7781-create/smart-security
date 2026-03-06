@@ -13,13 +13,13 @@ require('dotenv').config();
 // DATABASE CONFIGURATION
 // ============================================
 
-// Support Railway's MySQL environment variables
+// Support Railway's MySQL environment variables (both formats)
 const dbConfig = {
-    host: process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.MYSQL_PORT || process.env.DB_PORT) || 3306,
-    user: process.env.MYSQL_USER || process.env.DB_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || 'sarvani1530',
-    database: process.env.MYSQL_DATABASE || process.env.DB_NAME || 'smart_gate',
+    host: process.env.MYSQLHOST || process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.MYSQLPORT || process.env.MYSQL_PORT || process.env.DB_PORT) || 3306,
+    user: process.env.MYSQLUSER || process.env.MYSQL_USER || process.env.DB_USER || 'root',
+    password: process.env.MYSQLPASSWORD || process.env.MYSQL_ROOT_PASSWORD || process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || 'sarvani1530',
+    database: process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || process.env.DB_NAME || 'smart_gate',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
