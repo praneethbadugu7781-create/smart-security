@@ -107,6 +107,13 @@ async function autoInitSchema() {
             await createSchema();
             await seedInitialData();
             console.log('[DATABASE] Schema created successfully');
+        } else {
+            // Check if users exist, if not seed them
+            const [users] = await pool.query("SELECT COUNT(*) as count FROM users");
+            if (users[0].count === 0) {
+                console.log('[DATABASE] No users found, seeding initial data...');
+                await seedInitialData();
+            }
         }
     } catch (error) {
         console.error('[DATABASE] Auto-init schema error:', error.message);
@@ -335,13 +342,36 @@ async function seedInitialData() {
         ('GH1', 'Girls Hostel 1', 'girls')
     `);
     
-    // Insert default users
-    await pool.query(`
-        INSERT IGNORE INTO users (username, password_hash, full_name, role) VALUES
-        ('admin', ?, 'System Administrator', 'admin'),
-        ('security1', ?, 'Security Guard 1', 'security'),
-        ('principal', ?, 'Principal', 'principal')
-    `, [passwordHash, passwordHash, passwordHash]);
+    // Insert default users one by one to ensure they get created
+    try {
+        await pool.query(
+            `INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)`,
+            ['admin', passwordHash, 'System Administrator', 'admin']
+        );
+        console.log('[DATABASE] Created admin user');
+    } catch (e) {
+        if (!e.message.includes('Duplicate')) console.error('[DATABASE] Admin user error:', e.message);
+    }
+    
+    try {
+        await pool.query(
+            `INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)`,
+            ['security1', passwordHash, 'Security Guard 1', 'security']
+        );
+        console.log('[DATABASE] Created security user');
+    } catch (e) {
+        if (!e.message.includes('Duplicate')) console.error('[DATABASE] Security user error:', e.message);
+    }
+    
+    try {
+        await pool.query(
+            `INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)`,
+            ['principal', passwordHash, 'Principal', 'principal']
+        );
+        console.log('[DATABASE] Created principal user');
+    } catch (e) {
+        if (!e.message.includes('Duplicate')) console.error('[DATABASE] Principal user error:', e.message);
+    }
     
     console.log('[DATABASE] Initial data seeded');
     console.log('[DATABASE] Default login: admin / admin123');
