@@ -13,23 +13,53 @@ require('dotenv').config();
 // DATABASE CONFIGURATION
 // ============================================
 
-// Support Railway's MySQL environment variables (both formats)
-const dbConfig = {
-    host: process.env.MYSQLHOST || process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.MYSQLPORT || process.env.MYSQL_PORT || process.env.DB_PORT) || 3306,
-    user: process.env.MYSQLUSER || process.env.MYSQL_USER || process.env.DB_USER || 'root',
-    password: process.env.MYSQLPASSWORD || process.env.MYSQL_ROOT_PASSWORD || process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || 'sarvani1530',
-    database: process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || process.env.DB_NAME || 'smart_gate',
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    enableKeepAlive: true,
-    keepAliveInitialDelay: 0,
-    // MySQL specific settings
-    charset: 'utf8mb4',
-    timezone: '+00:00',
-    dateStrings: false
-};
+// Parse MySQL URL if provided (Railway provides MYSQL_URL or MYSQL_PUBLIC_URL)
+function parseDbConfig() {
+    const dbUrl = process.env.MYSQL_PUBLIC_URL || process.env.MYSQL_URL || process.env.DATABASE_URL;
+    
+    if (dbUrl) {
+        try {
+            const url = new URL(dbUrl);
+            console.log('[DATABASE] Using connection URL');
+            return {
+                host: url.hostname,
+                port: parseInt(url.port) || 3306,
+                user: url.username,
+                password: url.password,
+                database: url.pathname.slice(1), // Remove leading slash
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0,
+                enableKeepAlive: true,
+                keepAliveInitialDelay: 0,
+                charset: 'utf8mb4',
+                timezone: '+00:00',
+                dateStrings: false
+            };
+        } catch (e) {
+            console.log('[DATABASE] Invalid URL, using individual vars');
+        }
+    }
+    
+    // Fall back to individual environment variables
+    return {
+        host: process.env.MYSQLHOST || process.env.MYSQL_HOST || process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.MYSQLPORT || process.env.MYSQL_PORT || process.env.DB_PORT) || 3306,
+        user: process.env.MYSQLUSER || process.env.MYSQL_USER || process.env.DB_USER || 'root',
+        password: process.env.MYSQLPASSWORD || process.env.MYSQL_ROOT_PASSWORD || process.env.MYSQL_PASSWORD || process.env.DB_PASSWORD || 'sarvani1530',
+        database: process.env.MYSQLDATABASE || process.env.MYSQL_DATABASE || process.env.DB_NAME || 'smart_gate',
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0,
+        charset: 'utf8mb4',
+        timezone: '+00:00',
+        dateStrings: false
+    };
+}
+
+const dbConfig = parseDbConfig();
 
 // Connection pool instance
 let pool = null;
