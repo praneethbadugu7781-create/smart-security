@@ -55,11 +55,266 @@ async function initDatabase() {
         console.log(`[DATABASE] Database: ${dbConfig.database}`);
         connection.release();
         
+        // Auto-create tables if they don't exist
+        await autoInitSchema();
+        
         return pool;
     } catch (error) {
         console.error('[DATABASE] Failed to create connection pool:', error.message);
         throw error;
     }
+}
+
+/**
+ * Auto-initialize database schema if tables don't exist
+ */
+async function autoInitSchema() {
+    try {
+        // Check if departments table exists
+        const [tables] = await pool.query("SHOW TABLES LIKE 'departments'");
+        if (tables.length === 0) {
+            console.log('[DATABASE] Tables not found, creating schema...');
+            await createSchema();
+            await seedInitialData();
+            console.log('[DATABASE] Schema created successfully');
+        }
+    } catch (error) {
+        console.error('[DATABASE] Auto-init schema error:', error.message);
+    }
+}
+
+/**
+ * Create all database tables
+ */
+async function createSchema() {
+    const bcrypt = require('bcryptjs');
+    
+    // Create tables in order (respecting foreign keys)
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS departments (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            code VARCHAR(10) NOT NULL UNIQUE,
+            name VARCHAR(100) NOT NULL,
+            hod_user_id INT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `);
+    
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS hostels (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            code VARCHAR(10) NOT NULL UNIQUE,
+            name VARCHAR(100) NOT NULL,
+            type ENUM('boys', 'girls') NOT NULL,
+            warden_user_id INT NULL,
+            capacity INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `);
+    
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            username VARCHAR(50) NOT NULL UNIQUE,
+            password_hash VARCHAR(255) NOT NULL,
+            full_name VARCHAR(100) NOT NULL,
+            email VARCHAR(100),
+            phone VARCHAR(15),
+            role ENUM('security', 'admin', 'hod', 'warden', 'principal') NOT NULL,
+            department_id INT NULL,
+            hostel_id INT NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            last_login TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `);
+    
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS students (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            roll_number VARCHAR(20) NOT NULL UNIQUE,
+            full_name VARCHAR(100) NOT NULL,
+            email VARCHAR(100),
+            phone VARCHAR(15),
+            parent_phone VARCHAR(15),
+            student_type ENUM('day_scholar', 'hosteler', 'bus') NOT NULL DEFAULT 'day_scholar',
+            department_id INT NOT NULL,
+            year_of_study TINYINT DEFAULT 1,
+            section VARCHAR(5),
+            hostel_id INT NULL,
+            room_number VARCHAR(10) NULL,
+            bus_route VARCHAR(50) NULL,
+            bus_stop VARCHAR(100) NULL,
+            photo_url VARCHAR(255) NULL,
+            is_active BOOLEAN DEFAULT TRUE,
+            admission_date DATE,
+            roaming_count INT DEFAULT 0,
+            late_count INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `);
+    
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS entry_exit_logs (
+            id BIGINT PRIMARY KEY AUTO_INCREMENT,
+            student_id INT NOT NULL,
+            roll_number VARCHAR(20) NOT NULL,
+            event_type ENUM('entry', 'exit', 'roaming') NOT NULL,
+            event_timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            gate_location VARCHAR(50) DEFAULT 'main_gate',
+            is_allowed BOOLEAN NOT NULL DEFAULT TRUE,
+            requires_permission BOOLEAN DEFAULT FALSE,
+            has_permission BOOLEAN DEFAULT FALSE,
+            permission_letter_id BIGINT NULL,
+            student_type ENUM('day_scholar', 'hosteler', 'bus') NOT NULL DEFAULT 'day_scholar',
+            is_during_class_hours BOOLEAN DEFAULT FALSE,
+            is_late_entry BOOLEAN DEFAULT FALSE,
+            is_late_return BOOLEAN DEFAULT FALSE,
+            alert_sent BOOLEAN DEFAULT FALSE,
+            alert_sent_to VARCHAR(50) NULL,
+            alert_acknowledged BOOLEAN DEFAULT FALSE,
+            alert_acknowledged_by INT NULL,
+            alert_acknowledged_at TIMESTAMP NULL,
+            scanned_by_user_id INT NOT NULL,
+            notes TEXT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS permission_letters (
+            id BIGINT PRIMARY KEY AUTO_INCREMENT,
+            student_id INT NOT NULL,
+            roll_number VARCHAR(20) NOT NULL,
+            reason TEXT NOT NULL,
+            permitted_exit_time TIME NULL,
+            permitted_return_time TIME NULL,
+            permission_date DATE NOT NULL,
+            photo_filename VARCHAR(255) NOT NULL,
+            photo_path VARCHAR(500) NOT NULL,
+            photo_mime_type VARCHAR(50) NOT NULL,
+            issued_by_name VARCHAR(100),
+            issued_by_designation VARCHAR(100),
+            is_verified BOOLEAN DEFAULT FALSE,
+            verified_by_user_id INT NULL,
+            verified_at TIMESTAMP NULL,
+            is_used BOOLEAN DEFAULT FALSE,
+            used_at TIMESTAMP NULL,
+            used_for_log_id BIGINT NULL,
+            is_valid BOOLEAN DEFAULT TRUE,
+            invalidated_reason VARCHAR(255) NULL,
+            uploaded_by_user_id INT NOT NULL,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+    `);
+    
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS roaming_logs (
+            id BIGINT PRIMARY KEY AUTO_INCREMENT,
+            student_id INT NOT NULL,
+            roll_number VARCHAR(20) NOT NULL,
+            detected_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            detected_location VARCHAR(100) DEFAULT 'campus',
+            expected_class VARCHAR(100) NULL,
+            expected_location VARCHAR(100) NULL,
+            alert_sent_to_hod BOOLEAN DEFAULT FALSE,
+            hod_notified_at TIMESTAMP NULL,
+            hod_user_id INT NULL,
+            is_resolved BOOLEAN DEFAULT FALSE,
+            resolution_notes TEXT NULL,
+            resolved_by_user_id INT NULL,
+            resolved_at TIMESTAMP NULL,
+            is_escalated BOOLEAN DEFAULT FALSE,
+            escalated_to ENUM('warden', 'principal') NULL,
+            escalated_at TIMESTAMP NULL,
+            entry_exit_log_id BIGINT NULL,
+            detected_by_user_id INT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS alerts (
+            id BIGINT PRIMARY KEY AUTO_INCREMENT,
+            target_role ENUM('hod', 'warden', 'principal', 'admin') NOT NULL,
+            target_department_id INT NULL,
+            target_hostel_id INT NULL,
+            alert_type ENUM('roaming', 'unauthorized_exit', 'late_return', 'permission_required', 'escalation') NOT NULL,
+            priority ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+            title VARCHAR(200) NOT NULL,
+            message TEXT NOT NULL,
+            student_id INT NULL,
+            entry_exit_log_id BIGINT NULL,
+            roaming_log_id BIGINT NULL,
+            is_read BOOLEAN DEFAULT FALSE,
+            read_by_user_id INT NULL,
+            read_at TIMESTAMP NULL,
+            is_actioned BOOLEAN DEFAULT FALSE,
+            action_taken VARCHAR(255) NULL,
+            actioned_by_user_id INT NULL,
+            actioned_at TIMESTAMP NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+    
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS audit_logs (
+            id BIGINT PRIMARY KEY AUTO_INCREMENT,
+            user_id INT NULL,
+            action VARCHAR(100) NOT NULL,
+            table_name VARCHAR(50),
+            record_id VARCHAR(50),
+            old_values JSON,
+            new_values JSON,
+            ip_address VARCHAR(45),
+            user_agent TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
+}
+
+/**
+ * Seed initial data (departments, users)
+ */
+async function seedInitialData() {
+    const bcrypt = require('bcryptjs');
+    const passwordHash = await bcrypt.hash('admin123', 10);
+    
+    // Insert departments
+    await pool.query(`
+        INSERT IGNORE INTO departments (code, name) VALUES
+        ('CSE', 'Computer Science & Engineering'),
+        ('ECE', 'Electronics & Communication Engineering'),
+        ('EEE', 'Electrical & Electronics Engineering'),
+        ('ME', 'Mechanical Engineering'),
+        ('CE', 'Civil Engineering'),
+        ('AI', 'Artificial Intelligence'),
+        ('IT', 'Information Technology')
+    `);
+    
+    // Insert hostels
+    await pool.query(`
+        INSERT IGNORE INTO hostels (code, name, type) VALUES
+        ('BH1', 'Boys Hostel 1', 'boys'),
+        ('GH1', 'Girls Hostel 1', 'girls')
+    `);
+    
+    // Insert default users
+    await pool.query(`
+        INSERT IGNORE INTO users (username, password_hash, full_name, role) VALUES
+        ('admin', ?, 'System Administrator', 'admin'),
+        ('security1', ?, 'Security Guard 1', 'security'),
+        ('principal', ?, 'Principal', 'principal')
+    `, [passwordHash, passwordHash, passwordHash]);
+    
+    console.log('[DATABASE] Initial data seeded');
+    console.log('[DATABASE] Default login: admin / admin123');
 }
 
 /**
