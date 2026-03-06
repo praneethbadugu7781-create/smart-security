@@ -71,6 +71,38 @@ router.post('/login', asyncHandler(async (req, res) => {
  */
 router.post('/api/auth/login', asyncHandler(authController.login));
 
+/**
+ * GET /setup-admin
+ * Emergency route to create admin user if none exists
+ */
+router.get('/setup-admin', asyncHandler(async (req, res) => {
+    const bcrypt = require('bcryptjs');
+    const db = require('../config/database');
+    
+    try {
+        // Check if admin exists
+        const users = await db.query("SELECT * FROM users WHERE username = 'admin'");
+        
+        if (users && users.length > 0) {
+            // Update password
+            const hash = await bcrypt.hash('admin123', 10);
+            await db.query("UPDATE users SET password_hash = ? WHERE username = 'admin'", [hash]);
+            return res.send('Admin password reset to: admin123');
+        }
+        
+        // Create admin user
+        const hash = await bcrypt.hash('admin123', 10);
+        await db.query(
+            "INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)",
+            ['admin', hash, 'System Administrator', 'admin']
+        );
+        
+        res.send('Admin user created! Login: admin / admin123');
+    } catch (error) {
+        res.send('Error: ' + error.message);
+    }
+}));
+
 // ==========================================
 // PROTECTED ROUTES (Authentication required)
 // ==========================================
