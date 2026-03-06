@@ -1,7 +1,7 @@
 /**
  * Reset all user passwords to 'admin123'
  */
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const db = require('../config/database');
 
 async function resetPasswords() {
