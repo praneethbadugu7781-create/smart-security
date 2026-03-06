@@ -79,28 +79,74 @@ router.get('/setup-admin', asyncHandler(async (req, res) => {
     const bcrypt = require('bcryptjs');
     const db = require('../config/database');
     
+    let output = '<h2>Setup Admin</h2>';
+    
     try {
-        // Check if admin exists
-        const users = await db.query("SELECT * FROM users WHERE username = 'admin'");
+        // Test DB connection
+        output += '<p>Testing database connection...</p>';
         
-        if (users && users.length > 0) {
-            // Update password
-            const hash = await bcrypt.hash('admin123', 10);
-            await db.query("UPDATE users SET password_hash = ? WHERE username = 'admin'", [hash]);
-            return res.send('Admin password reset to: admin123');
+        // Check tables
+        const tables = await db.query("SHOW TABLES");
+        output += `<p>Tables found: ${JSON.stringify(tables.map(t => Object.values(t)[0]))}</p>`;
+        
+        // Check if users table exists
+        const usersTable = tables.find(t => Object.values(t)[0] === 'users');
+        if (!usersTable) {
+            output += '<p style="color:red">Users table not found! Creating...</p>';
+            await db.query(`
+                CREATE TABLE IF NOT EXISTS users (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    username VARCHAR(50) NOT NULL UNIQUE,
+                    password_hash VARCHAR(255) NOT NULL,
+                    full_name VARCHAR(100) NOT NULL,
+                    email VARCHAR(100),
+                    phone VARCHAR(15),
+                    role ENUM('security', 'admin', 'hod', 'warden', 'principal') NOT NULL,
+                    department_id INT NULL,
+                    hostel_id INT NULL,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    last_login TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                )
+            `);
+            output += '<p style="color:green">Users table created!</p>';
         }
         
-        // Create admin user
-        const hash = await bcrypt.hash('admin123', 10);
-        await db.query(
-            "INSERT INTO users (username, password_hash, full_name, role) VALUES (?, ?, ?, ?)",
-            ['admin', hash, 'System Administrator', 'admin']
-        );
+        // Check for admin user
+        const users = await db.query("SELECT id, username, role FROM users");
+        output += `<p>Existing users: ${JSON.stringify(users)}</p>`;
         
-        res.send('Admin user created! Login: admin / admin123');
+        // Create/update admin
+        const hash = await bcrypt.hash('admin123', 10);
+        output += `<p>Generated hash: ${hash.substring(0, 20)}...</p>`;
+        
+        const adminExists = users.find(u => u.username === 'admin');
+        
+        if (adminExists) {
+            await db.query("UPDATE users SET password_hash = ?, is_active = 1 WHERE username = 'admin'", [hash]);
+            output += '<p style="color:green">Admin password updated to: admin123</p>';
+        } else {
+            await db.query(
+                "INSERT INTO users (username, password_hash, full_name, role, is_active) VALUES (?, ?, ?, ?, ?)",
+                ['admin', hash, 'System Administrator', 'admin', 1]
+            );
+            output += '<p style="color:green">Admin user created!</p>';
+        }
+        
+        // Verify
+        const verifyUsers = await db.query("SELECT id, username, role, is_active FROM users WHERE username = 'admin'");
+        output += `<p>Verified admin: ${JSON.stringify(verifyUsers)}</p>`;
+        
+        output += '<h3 style="color:green">Login with: admin / admin123</h3>';
+        output += '<p><a href="/login">Go to Login</a></p>';
+        
     } catch (error) {
-        res.send('Error: ' + error.message);
+        output += `<p style="color:red">Error: ${error.message}</p>`;
+        output += `<pre>${error.stack}</pre>`;
     }
+    
+    res.send(output);
 }));
 
 // ==========================================
